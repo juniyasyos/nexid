@@ -68,5 +68,19 @@
     "secret": "rbv_secret_key_456",
     "logo_url": null,
     "token_expiry": 7300
+  },
+  {
+    "app_key": "template-1",
+    "name": "Template 1",
+    "description": "Aplikasi Template 1",
+    "enabled": true,
+    "redirect_uris": [
+      "http://127.0.0.1:8000"
+    ],
+    "callback_url": "http://127.0.0.1:8000/sso/callback",
+    "backchannel_url": "http://127.0.0.1:8000",
+    "secret": "template1_secret_key_123",
+    "logo_url": null,
+    "token_expiry": 3600
   }
 ]

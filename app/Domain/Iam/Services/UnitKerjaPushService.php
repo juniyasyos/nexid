@@ -28,7 +28,7 @@ class UnitKerjaPushService
             ];
         }
 
-        $payload = $this->buildPayload($unitKerjaId);
+        $payload = $this->buildPayload($application, $unitKerjaId);
         $pushUrl = $this->buildPushUrl($application, $application->app_key);
 
         Log::info('iam.push_unit_kerja_request', [
@@ -107,7 +107,7 @@ class UnitKerjaPushService
         }
     }
 
-    protected function buildPayload(?int $unitKerjaId = null): array
+    protected function buildPayload(Application $application, ?int $unitKerjaId = null): array
     {
         $unitsQuery = UnitKerja::query()->whereNull('deleted_at');
         $relationsQuery = \Illuminate\Support\Facades\DB::table('user_unit_kerja')
@@ -135,7 +135,25 @@ class UnitKerjaPushService
                 ->toArray();
         }
 
-        $userIds = $relationsQuery->pluck('user_id')->unique()->toArray();
+        $rawUserIds = $relationsQuery->pluck('user_id')->unique()->toArray();
+        
+        $userIds = empty($rawUserIds) ? [] : User::whereIn('id', $rawUserIds)
+            ->where(function ($q) use ($application) {
+                $q->whereHas('applicationRoles', function ($q2) use ($application) {
+                    $q2->where('iam_roles.application_id', $application->id);
+                })
+                ->orWhereHas('accessProfiles.roles', function ($q3) use ($application) {
+                    $q3->where('iam_roles.application_id', $application->id);
+                });
+            })
+            ->pluck('id')
+            ->toArray();
+
+        if (!empty($userIds)) {
+            $relationsQuery->whereIn('user_unit_kerja.user_id', $userIds);
+        } else {
+            $relationsQuery->where('user_unit_kerja.user_id', -1);
+        }
 
         $selectColumns = ['id', 'nip', 'email', 'name', 'status', 'created_at', 'updated_at'];
         if (Schema::hasColumn((new User())->getTable(), 'iam_id')) {
